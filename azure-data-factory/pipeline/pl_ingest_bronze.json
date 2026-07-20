@@ -24,7 +24,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "AzureSqlTable1",
+						"referenceName": "ds_sql_source",
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false

@@ -1,15 +1,20 @@
 {
-	"name": "AzureSqlTable1",
+	"name": "ds_sql_source",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_AzureSqlDatabase",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"tableName": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "AzureSqlTable",
 		"schema": [],
 		"typeProperties": {
-			"schema": "SalesLT",
+			"schema": "",
 			"table": ""
 		}
 	},
