@@ -1,0 +1,72 @@
+{
+	"name": "pl_master_orchestrator",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute pl_inegest_bronze",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_ingest_bronze",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute merge_silver",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute pl_inegest_bronze",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_merge_silver",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute  build-gold",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute merge_silver",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_ingest_bronze",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-07-20T07:27:46Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
