@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-project-inc"
+		},
+		"ls_AzureSqlDatabase_password": {
+			"value": ""
+		},
+		"ls_control_table_AzureSqlDatabase_password": {
+			"value": ""
+		},
+		"ls_AzureSqlDatabase_properties_typeProperties_server": {
+			"value": "sqlserverinc.database.windows.net"
+		},
+		"ls_AzureSqlDatabase_properties_typeProperties_database": {
+			"value": "incdb"
+		},
+		"ls_AzureSqlDatabase_properties_typeProperties_userName": {
+			"value": "kadademin"
+		},
+		"ls_control_table_AzureSqlDatabase_properties_typeProperties_server": {
+			"value": "sqlserverinc.database.windows.net"
+		},
+		"ls_control_table_AzureSqlDatabase_properties_typeProperties_database": {
+			"value": "incdb"
+		},
+		"ls_control_table_AzureSqlDatabase_properties_typeProperties_userName": {
+			"value": "kadademin"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
