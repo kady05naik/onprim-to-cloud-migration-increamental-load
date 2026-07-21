@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Lookup table names in ms sql",
+				"name": "LU_GetTableConfig",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -17,40 +17,113 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT table_schema,table_name from information_schema.tables\nwhere table_catalog='incdb' and table_schema='SalesLT' and table_type='BASE TABLE';\n",
+						"sqlReaderQuery": "SELECT * \nFROM dbo.table_config \nWHERE is_active=1",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_sql_source",
+						"referenceName": "ds_control_table",
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
 				}
 			},
 			{
-				"name": "ForEach1",
+				"name": "FE_ProcessTables",
 				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "LU_GetTableConfig",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"userProperties": [],
 				"typeProperties": {
+					"items": {
+						"value": "@activity('LU_GetTableConfig').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 4,
 					"activities": [
 						{
-							"name": "Copy data1",
-							"type": "Copy",
+							"name": "IF_CheckFirstRun",
+							"type": "IfCondition",
 							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
 							"userProperties": [],
 							"typeProperties": {
-								"enableStaging": false
+								"expression": {
+									"value": "@equals(item().last_sync_value, null )",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "CP_FullLoad",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "@concat('SELECT * FROM ', activity('LU_GetTableConfig').output.value.table_name)",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"sink": {
+												"type": "ParquetSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings",
+													"copyBehavior": "PreserveHierarchy"
+												},
+												"formatSettings": {
+													"type": "ParquetWriteSettings"
+												}
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "ds_sql_source",
+												"type": "DatasetReference"
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ds_adls_bronze",
+												"type": "DatasetReference",
+												"parameters": {
+													"table_name": {
+														"value": "@activity('LU_GetTableConfig').output.value.table_name",
+														"type": "Expression"
+													},
+													"folder_date": {
+														"value": "@formatDateTime(utcnow(),'yyyy/MM/dd')",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								]
 							}
 						}
 					]
