@@ -74,7 +74,7 @@
 											"source": {
 												"type": "AzureSqlSource",
 												"sqlReaderQuery": {
-													"value": "@concat('SELECT * FROM ', activity('LU_GetTableConfig').output.value.table_name)",
+													"value": "@concat('SELECT * FROM ', item().table_name)",
 													"type": "Expression"
 												},
 												"queryTimeout": "02:00:00",
@@ -103,7 +103,13 @@
 										"inputs": [
 											{
 												"referenceName": "ds_sql_source",
-												"type": "DatasetReference"
+												"type": "DatasetReference",
+												"parameters": {
+													"tableName": {
+														"value": "@item().table_name",
+														"type": "Expression"
+													}
+												}
 											}
 										],
 										"outputs": [
@@ -112,7 +118,7 @@
 												"type": "DatasetReference",
 												"parameters": {
 													"table_name": {
-														"value": "@activity('LU_GetTableConfig').output.value.table_name",
+														"value": "@item().table_name",
 														"type": "Expression"
 													},
 													"folder_date": {
