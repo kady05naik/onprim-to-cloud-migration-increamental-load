@@ -11,6 +11,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'ls_AzureSqlDatabase'"
 		},
+		"ls_adls_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_adls'"
+		},
 		"ls_control_table_AzureSqlDatabase_password": {
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'ls_control_table_AzureSqlDatabase'"
@@ -26,6 +30,10 @@
 		"ls_AzureSqlDatabase_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "kadademin"
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stoprojinc.dfs.core.windows.net/"
 		},
 		"ls_control_table_AzureSqlDatabase_properties_typeProperties_server": {
 			"type": "string",
@@ -69,6 +77,9 @@
 					"ls_AzureSqlDatabase_password": {
 						"value": "[parameters('ls_AzureSqlDatabase_password')]"
 					},
+					"ls_adls_accountKey": {
+						"value": "[parameters('ls_adls_accountKey')]"
+					},
 					"ls_control_table_AzureSqlDatabase_password": {
 						"value": "[parameters('ls_control_table_AzureSqlDatabase_password')]"
 					},
@@ -80,6 +91,9 @@
 					},
 					"ls_AzureSqlDatabase_properties_typeProperties_userName": {
 						"value": "[parameters('ls_AzureSqlDatabase_properties_typeProperties_userName')]"
+					},
+					"ls_adls_properties_typeProperties_url": {
+						"value": "[parameters('ls_adls_properties_typeProperties_url')]"
 					},
 					"ls_control_table_AzureSqlDatabase_properties_typeProperties_server": {
 						"value": "[parameters('ls_control_table_AzureSqlDatabase_properties_typeProperties_server')]"

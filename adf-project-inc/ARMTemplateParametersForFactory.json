@@ -8,6 +8,9 @@
 		"ls_AzureSqlDatabase_password": {
 			"value": ""
 		},
+		"ls_adls_accountKey": {
+			"value": ""
+		},
 		"ls_control_table_AzureSqlDatabase_password": {
 			"value": ""
 		},
@@ -19,6 +22,9 @@
 		},
 		"ls_AzureSqlDatabase_properties_typeProperties_userName": {
 			"value": "kadademin"
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"value": "https://stoprojinc.dfs.core.windows.net/"
 		},
 		"ls_control_table_AzureSqlDatabase_properties_typeProperties_server": {
 			"value": "sqlserverinc.database.windows.net"
