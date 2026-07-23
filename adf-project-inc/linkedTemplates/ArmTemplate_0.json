@@ -298,6 +298,8 @@
 					{
 						"name": "FE_ProcessTables",
 						"type": "ForEach",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "LU_GetTableConfig",
@@ -326,10 +328,8 @@
 										},
 										"ifFalseActivities": [
 											{
-												"name": "Copy data1",
+												"name": "CP_IncrementalLoad",
 												"type": "Copy",
-												"state": "Inactive",
-												"onInactiveMarkAs": "Succeeded",
 												"dependsOn": [],
 												"policy": {
 													"timeout": "0.12:00:00",
@@ -340,8 +340,63 @@
 												},
 												"userProperties": [],
 												"typeProperties": {
-													"enableStaging": false
-												}
+													"source": {
+														"type": "AzureSqlSource",
+														"sqlReaderQuery": {
+															"value": "@concat('SELECT * from', item().table_name,'WHERE', item().watermark_col,'>',''',item().last_sync_value,''')",
+															"type": "Expression"
+														},
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings",
+															"copyBehavior": "PreserveHierarchy"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_sql_source",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item().table_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_adls_bronze",
+														"type": "DatasetReference",
+														"parameters": {
+															"table_name": {
+																"value": "item().table_name",
+																"type": "Expression"
+															},
+															"folder_date": {
+																"value": "@formatDateTime(utcnow(), 'yyyy/MM/dd')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
 											}
 										],
 										"ifTrueActivities": [
