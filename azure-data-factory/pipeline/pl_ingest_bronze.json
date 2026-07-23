@@ -31,8 +31,6 @@
 			{
 				"name": "FE_ProcessTables",
 				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "LU_GetTableConfig",
