@@ -31,6 +31,8 @@
 			{
 				"name": "FE_ProcessTables",
 				"type": "ForEach",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "LU_GetTableConfig",
@@ -59,10 +61,8 @@
 								},
 								"ifFalseActivities": [
 									{
-										"name": "Copy data1",
+										"name": "CP_IncrementalLoad",
 										"type": "Copy",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
 										"dependsOn": [],
 										"policy": {
 											"timeout": "0.12:00:00",
@@ -73,8 +73,29 @@
 										},
 										"userProperties": [],
 										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "@concat('SELECT * from', item().table_name,'WHERE', item().watermark_col,'>',''',item().last_sync_value,''')",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
 											"enableStaging": false
-										}
+										},
+										"inputs": [
+											{
+												"referenceName": "ds_sql_source",
+												"type": "DatasetReference",
+												"parameters": {
+													"tableName": {
+														"value": "@item().table_name",
+														"type": "Expression"
+													}
+												}
+											}
+										]
 									}
 								],
 								"ifTrueActivities": [
