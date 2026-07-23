@@ -205,7 +205,7 @@
 									},
 									"new_watermark": {
 										"value": {
-											"value": "@activity('LU_GetNewWatermark').output.value[0].new_watermark",
+											"value": "@activity('LU_GetNewWatermark').output.firstRow.new_watermark",
 											"type": "Expression"
 										},
 										"type": "Datetime"
