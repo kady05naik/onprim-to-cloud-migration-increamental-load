@@ -74,7 +74,7 @@
 											"source": {
 												"type": "AzureSqlSource",
 												"sqlReaderQuery": {
-													"value": "@concat('SELECT * from', item().table_name,'WHERE', item().watermark_col,'>',''',item().last_sync_value,''')",
+													"value": "@concat('SELECT * from ', item().table_name,' WHERE ', item().watermark_col,' > ',''',item().last_sync_value,''')",
 													"type": "Expression"
 												},
 												"queryTimeout": "02:00:00",
