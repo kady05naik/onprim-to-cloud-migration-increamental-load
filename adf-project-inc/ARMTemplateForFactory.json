@@ -92,10 +92,8 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Lookup table names in ms sql",
+						"name": "LU_GetTableConfig",
 						"type": "Lookup",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -108,12 +106,12 @@
 						"typeProperties": {
 							"source": {
 								"type": "AzureSqlSource",
-								"sqlReaderQuery": "SELECT table_schema,table_name from information_schema.tables\nwhere table_catalog='incdb' and table_schema='SalesLT' and table_type='BASE TABLE';\n",
+								"sqlReaderQuery": "SELECT * \nFROM dbo.table_config \nWHERE is_active=1",
 								"queryTimeout": "02:00:00",
 								"partitionOption": "None"
 							},
 							"dataset": {
-								"referenceName": "ds_sql_source",
+								"referenceName": "ds_control_table",
 								"type": "DatasetReference",
 								"parameters": {}
 							},
@@ -121,18 +119,120 @@
 						}
 					},
 					{
-						"name": "ForEach1",
+						"name": "FE_ProcessTables",
 						"type": "ForEach",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "LU_GetTableConfig",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"userProperties": [],
 						"typeProperties": {
+							"items": {
+								"value": "@activity('LU_GetTableConfig').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 4,
 							"activities": [
 								{
-									"name": "Copy data1",
-									"type": "Copy",
+									"name": "IF_CheckFirstRun",
+									"type": "IfCondition",
 									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@equals(item().last_sync_value, null )",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "CP_FullLoad",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "AzureSqlSource",
+														"sqlReaderQuery": {
+															"value": "@concat('SELECT * FROM ', item().table_name)",
+															"type": "Expression"
+														},
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings",
+															"copyBehavior": "PreserveHierarchy"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_sql_source",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item().table_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_adls_bronze",
+														"type": "DatasetReference",
+														"parameters": {
+															"table_name": {
+																"value": "@item().table_name",
+																"type": "Expression"
+															},
+															"folder_date": {
+																"value": "@formatDateTime(utcnow(),'yyyy/MM/dd')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "LU_GetNewWatermark",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "IF_CheckFirstRun",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
 									"policy": {
 										"timeout": "0.12:00:00",
 										"retry": 0,
@@ -142,7 +242,69 @@
 									},
 									"userProperties": [],
 									"typeProperties": {
-										"enableStaging": false
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "@concat('SELECT MAX(',  item().watermark_col  ,') AS new_watermark FROM ', item().table_name)",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "ds_sql_source",
+											"type": "DatasetReference",
+											"parameters": {
+												"tableName": {
+													"value": "@item().table_name",
+													"type": "Expression"
+												}
+											}
+										},
+										"firstRowOnly": false
+									}
+								},
+								{
+									"name": "SP_UpdateWatermark",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "LU_GetNewWatermark",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[usp_update_watermark]",
+										"storedProcedureParameters": {
+											"table_name": {
+												"value": {
+													"value": "@item().table_name",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"new_watermark": {
+												"value": {
+													"value": "@activity('LU_GetNewWatermark').output.value[0].new_watermark",
+													"type": "Expression"
+												},
+												"type": "Datetime"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_AzureSqlDatabase",
+										"type": "LinkedServiceReference"
 									}
 								}
 							]
@@ -156,7 +318,10 @@
 				"lastPublishTime": "2026-07-20T07:27:46Z"
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_sql_source')]"
+				"[concat(variables('factoryId'), '/datasets/ds_control_table')]",
+				"[concat(variables('factoryId'), '/datasets/ds_sql_source')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_AzureSqlDatabase')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze')]"
 			]
 		},
 		{
@@ -297,6 +462,14 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@concat(dataset().folder_date,'.parquet')",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().table_name",
+							"type": "Expression"
+						},
 						"fileSystem": "bronze"
 					},
 					"compressionCodec": "snappy"
@@ -343,8 +516,7 @@
 				"type": "AzureSqlTable",
 				"schema": [],
 				"typeProperties": {
-					"schema": "",
-					"table": ""
+					"schema": ""
 				}
 			},
 			"dependsOn": [
